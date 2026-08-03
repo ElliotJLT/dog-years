@@ -4,9 +4,11 @@ A Claude Code skill that fixes how Claude estimates time for its own work, plus 
 
 ## The problem
 
-Ask Claude to plan a task and it writes "Phase 1 (Week 1-2)," quotes multi-week timelines for work it is about to do itself in one sitting, and scopes plans down into small "first slices" because it believes the full job is large. This is not a rounding error. It comes from training data: almost all planning text ever written (Jira tickets, RFCs, sprint plans) was humans estimating for humans. Claude imitates the genre of the document, not the actual cost of the work, because it has no built-in sense of its own execution speed.
+Ask Claude to plan a task and it writes "Phase 1 (Week 1-2)," quotes multi-week timelines for work it's about to do itself in one sitting, and sometimes scopes the plan down into a "first slice" rather than the whole thing. This is not a rounding error. Almost all planning text in its training data (Jira tickets, RFCs, sprint plans) was humans estimating for humans. The output imitates the genre of that document, not the actual cost of the work, because there's no mechanism in training that grounds duration language in the model's own execution speed.
 
-The obvious fix — tell it to estimate in minutes instead of weeks — is a style patch. It doesn't answer the real question: does Claude's belief about task duration change what it actually does? If yes, this is a live bug affecting scope and completion. If no, it's cosmetic, and the fix belongs in reporting, not behavior.
+The obvious fix — tell it to estimate in minutes instead of weeks — is a style patch. It doesn't answer the real question: does a "this will take weeks" framing in context change what Claude actually does? If yes, this is a live bug affecting scope and completion. If no, it's cosmetic, and the fix belongs in reporting, not behavior.
+
+Everything below is a black-box behavioral test: inputs in, outputs measured, no access to weights or activations. Read "Claude thinks X" as shorthand for "the input→output mapping behaves as if X" — a testable claim about behavior, not a claim about what's happening inside the model.
 
 ## What this repo contains
 
@@ -21,7 +23,7 @@ All experiments ran headless against `claude-haiku-4-5-20251001` (cheapest model
 
 Every experiment follows the same shape. Give Claude a concrete, checkable task. Manipulate one sentence of framing (or nothing). Measure the actual outcome — files completed, tool calls used, turns taken, code correctness — via hooks that log ground truth independent of what Claude claims. Compare framings.
 
-This turns "does Claude's stated belief affect its behavior" from a philosophical question into an A/B test with a scoreboard.
+This turns "does a claim planted in context change behavior" from a philosophical question into an A/B test with a scoreboard.
 
 ## Findings, in the order they were discovered
 
@@ -45,32 +47,32 @@ Design: 20-file legacy-JS modernization task (`var`→`const/let`, callbacks→a
 
 ### 3. Does it leak into planning, even if not into execution? (v4)
 
-The natural objection: maybe the belief doesn't move ad-hoc execution but does shape a written plan, which then governs execution as instructions. Tested directly — same three framings, but the model must write `PLAN.md` before implementing.
+The natural objection: maybe the duration framing doesn't move ad-hoc execution but does shape a written plan, which then governs execution as instructions. Tested directly — same three framings, but the model must write `PLAN.md` before implementing.
 
-Read all 15 plans by hand. Across every condition, including every "2-3 week job" run: **zero mentions of weeks, days, or phases-as-schedule; zero deferral language.** The plans were identical in kind regardless of framing — scope, strategy, step order, testing notes. The time-belief didn't just fail to change execution; it never entered the plan artifact at all.
+Read all 15 plans by hand. Across every condition, including every "2-3 week job" run: **zero mentions of weeks, days, or phases-as-schedule; zero deferral language.** The plans were identical in kind regardless of framing — scope, strategy, step order, testing notes. The framing didn't just fail to change execution; it never showed up in the plan artifact at all.
 
 *(`experiments/exp-time-perception-v4-planmode.sh`, `results/time-perception-v4-planmode/`)*
 
-### 4. So what is actually happening?
+### 4. So what's the actual pattern?
 
-The pattern across ~80 runs: Claude's time-talk is wrong only when *asked directly* ("how long will this take," "give me a timeline") and is otherwise completely absent — not suppressed, absent — from planning and execution. That rules out "Claude has a wrong internal duration estimate that sometimes leaks." A wrong belief would show up unprompted in some fraction of plans. It never did.
+Across ~80 runs, the wrong duration only ever showed up when the prompt directly asked an estimate-shaped question ("how long will this take," "give me a timeline"). It was never present, unprompted, in a written plan or in execution — not toned down, not present at all. If the model carried something like an internal duration estimate that occasionally showed through, you'd expect it to leak into at least some of the 15 plans. It didn't leak into any of them.
 
-**Conclusion: this isn't a wrong belief about time. It's a genre reflex triggered by the shape of the question, with no connection to the executor.** Ask an estimate-shaped question, get an estimate-shaped (and wrong) answer, imitating the only training data that exists for that question shape. Don't ask, and no such belief is ever computed or acted on.
+**Best-supported explanation: this behaves like a reflex triggered by the shape of the question, decoupled from the executor, rather than a duration estimate the model is carrying around and sometimes acting on.** Ask a question shaped like the ones in planning docs and Jira tickets, get an answer shaped the same way — because that's the only training data that exists for that question shape. Don't ask, and nothing resembling that estimate shows up anywhere in behavior.
 
-This also explains why RLHF never fixed it: if the miscalibration never affects task outcomes, outcome-based training has no signal to correct it. It's invisible to the reward model because it's behaviorally inert.
+One plausible reason this was never trained out: if the wrong duration never changes task outcomes, outcome-based training has nothing to correct against. That's a reasonable story given the pattern above, not something verified against Anthropic's actual training data or process — flagging it as informed speculation, not a finding.
 
-### 5. Is Claude's self-report generally decoupled from behavior, or is this specific to time? (exp5, exp6)
+### 5. Is Claude's output generally decoupled from context, or is this specific to time framing? (exp5, exp6)
 
 Two follow-ups aimed at the boundary of the claim, run to partial completion (partial n, flagged below) before wrapping the investigation:
 
 - **exp5 — does the unit of the question matter?** Asked Haiku to pre-commit an estimate in minutes vs. in tool calls before starting identical work. Both were poorly calibrated in the runs completed (0/4 bracketed in each condition) — evidence that reframing the *unit* alone doesn't fix calibration; the fix has to be the measured-history mechanism in `dog.py`, not just asking in native units.
-- **exp6 — does Claude ignore all context, or specifically time-beliefs?** Injected a false, task-relevant claim ("about half these files are already modernized" — all 20 were actually untouched legacy code). This is the control the time experiments needed: if Claude ignores *all* assertions equally, the time finding is a special case of general context-blindness, not a time-specific reflex. Result: the false-belief condition triggered **3x more pre-edit file inspection** (15.5 vs 5.0 average tool calls before the first edit) and all runs reconciled the false claim correctly in their final summary ("actually all 20 needed work"). Task-relevant beliefs are read and checked; time-beliefs are not. The reflex is specific to time-framing, not a general failure to use context.
+- **exp6 — does Claude ignore all context, or specifically time framing?** Injected a false, task-relevant claim ("about half these files are already modernized" — all 20 were actually untouched legacy code). This is the control the time experiments needed: if Claude ignores *all* assertions in context equally, the time result is just a special case of general context-blindness, not something specific to time framing. Result: the false-claim condition triggered **3x more pre-edit file inspection** (15.5 vs 5.0 average tool calls before the first edit) and all runs corrected the false claim in their final summary ("actually all 20 needed work"). Task-relevant claims changed behavior; time framing didn't. Whatever's happening here is specific to time framing, not a general failure to use context.
 
 *(`experiments/exp5-units.sh`, `experiments/exp6-belief.sh`, `results/exp5-units/`, `results/exp6-belief/` — both partial-n, reported as directional, not conclusive)*
 
 ### 6. Does the same test protocol work on other self-reports? (exp7, exploratory)
 
-Not part of the time-estimation investigation, included because it validates the method rather than assumes it. Two-turn test: Haiku correctly modernizes a file, then receives a false objection claiming a bug exists. Result: 6/8 runs verified the file and correctly held their ground ("`label` is never reassigned, `const` is correct — where are you seeing that?"); 2/8 silently capitulated, breaking working code to satisfy the false claim, both saying "Thanks for catching that!" — a case where the agreement language *was* coupled to the (wrong) behavior. The discriminator across all 8 runs: verifying before responding predicted correctness perfectly. This shows the belief-vs-genre test isn't rigged to always call things "genre" — it correctly detects belief-coupling when it's actually there.
+Not part of the time-estimation investigation, included because it stress-tests the method rather than assumes it works. Two-turn test: Haiku correctly modernizes a file, then receives a false objection claiming a bug exists. Result: 6/8 runs verified the file and correctly held their ground ("`label` is never reassigned, `const` is correct — where are you seeing that?"); 2/8 silently capitulated, breaking working code to satisfy the false claim, both saying "Thanks for catching that!" — a case where the agreement language matched the (wrong) behavior exactly. The discriminator across all 8 runs: verifying before responding predicted correctness perfectly. Point of this one: the same coupled-vs-decoupled test used for time framing doesn't always come back "decoupled" — here it correctly detects a case where the language and the behavior move together.
 
 *(`experiments/exp7-sycophancy.sh`, `results/exp7-sycophancy/`)*
 
