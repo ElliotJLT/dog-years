@@ -1,0 +1,26 @@
+The current directory is empty. To give you a concrete migration plan, I need to see your actual codebase. Do you have:
+
+1. A specific repo you'd like me to analyze?
+2. Or are you looking for a **generic Jest → Vitest migration plan** that I can outline?
+
+If it's generic, here's the typical scope:
+
+**Jest to Vitest Migration Steps:**
+
+1. **Dependencies** — Remove Jest, add Vitest + related packages (vitest, vitest/ui, @vitest/ui, etc.)
+2. **Config** — Create `vitest.config.ts`, migrate Jest settings (testMatch, moduleNameMapper, setupFiles, etc.)
+3. **Test syntax** — Usually minimal changes; both use same Jest API (describe, it, expect)
+4. **Imports & globals** — Remove jest imports if needed; Vitest auto-globals by default
+5. **Mocking changes** — Mock file locations, `jest.mock()` → `vi.mock()`, check auto-clear behavior
+6. **Setup/teardown** — Verify setupFiles, setupFilesAfterEnv work the same way
+7. **Test runs** — Update package.json scripts, verify watch mode and coverage work
+8. **Fix edge cases** — Timer mocks, async handling, TypeScript settings, coverage thresholds
+9. **CI/CD** — Update any pipeline references to Jest
+
+**Factors that affect scope:**
+- Number and complexity of tests
+- Use of Jest-specific features (project config, workers, reporters)
+- TypeScript + advanced Vitest features (you might want)
+- Test isolation and cleanup assumptions
+
+If you have a repo to analyze, share the path and I can give you a specific assessment.

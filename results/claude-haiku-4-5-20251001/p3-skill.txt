@@ -1,0 +1,20 @@
+I need clarification on a few things before roadmapping:
+
+**Tech stack:**
+- Frontend: React, Vue, Next.js, plain HTML, or something else?
+- Backend: Node/Express, Python/FastAPI, Go, or existing service?
+- Database: PostgreSQL, Mongo, or in-memory for waitlist?
+
+**Starting point:**
+- Do you have a repo I should work in, or should I create one from scratch?
+- Any existing setup (auth, database connection, env config)?
+
+**Design scope:**
+- Landing page: simple 1-pager with email form, or something more elaborate?
+- Waitlist API: just email capture + list retrieval, or include referral tracking, tiers, notifications?
+
+**Stripe specifics:**
+- Checkout-only, or also handle webhooks for successful charges?
+- One product/price, or variable amounts?
+
+Once I have those answers, I'll give you agent-time estimates (minutes/sessions, not weeks) and a clear step order.

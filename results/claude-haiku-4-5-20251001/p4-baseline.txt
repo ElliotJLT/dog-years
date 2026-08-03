@@ -1,0 +1,95 @@
+I'll create a shipping plan that accounts for the key failure modes:
+
+## iOS App Update Shipping Plan
+
+### Phase 1: Code Fix & Validation (Days 1-2)
+**Goal:** Ensure fix is solid and doesn't regress
+- [ ] Implement the code fix in a feature branch
+- [ ] Run full test suite locally; verify fix passes new tests
+- [ ] Code review with team (catch regressions early—App Store rejection wastes 1-3 days)
+- [ ] Merge to main
+
+**Risk:** Incomplete testing → bugs surface during TestFlight (back up to 5-7 days)
+**Mitigation:** Extend local testing; add integration tests for the fix
+
+---
+
+### Phase 2: TestFlight Build & Internal Testing (Days 3-4)
+**Goal:** Catch major issues before beta users find them
+- [ ] Bump version number (check current; avoid conflicts with previous builds)
+- [ ] Verify signing certificates and provisioning profiles are valid (test build often fails here silently)
+- [ ] Build for TestFlight in Xcode/CI; upload to App Store Connect
+- [ ] Internal team tests on real devices for 24h minimum (not just simulator)
+- [ ] Test critical user flows, payment flows (if applicable), new feature
+- [ ] Smoke test on oldest supported iOS version
+
+**Risk:** Certificate expired or profile invalid → build rejected at upload (2-4h delay)
+**Mitigation:** Check cert expiry *before* building; regenerate if <30 days out
+
+---
+
+### Phase 3: External TestFlight (Days 5-6)
+**Goal:** Real-world user feedback; catch edge cases
+- [ ] Invite beta testers (or use existing group)
+- [ ] Add clear release notes: "Testing v[X.Y.Z]—[fix summary]. Report crashes/issues in Feedback."
+- [ ] Monitor crashes in TestFlight analytics daily
+- [ ] Address critical bugs; non-critical issues can ship if time is tight
+- [ ] Collect feedback for 48h minimum (gives global time zones a shot)
+
+**Risk:** Critical crash emerges → requires new build, resets TestFlight clock by 24-48h
+**Mitigation:** Tight internal testing (Phase 2); keep TestFlight window short
+
+---
+
+### Phase 4: App Store Submission (Day 7)
+**Goal:** Get build in review queue; minimize review rejection
+- [ ] Fill out App Store metadata (changelog, keywords, screenshots—review team checks these)
+- [ ] Privacy policy: verify no new data collection introduced by fix
+- [ ] Review app category, rating, content guidelines
+- [ ] Check "Uses Encryption" compliance if applicable
+- [ ] Verify compliance with latest App Store Review Guidelines (changes quarterly)
+- [ ] Upload build; submit for review
+
+**Risk:** Policy rejection (metadata mismatch, privacy claims, payment flow issues) → 1-3 day turnaround, requires resubmit
+**Mitigation:** Do a "policy audit" before submission; check recent rejections in ASC activity log
+
+---
+
+### Phase 5: App Store Review (Days 8-14)
+**Goal:** Get approval; respond quickly to any questions
+- [ ] Monitor App Store Connect daily for review status
+- [ ] If rejected: read feedback carefully, fix, resubmit (usually 24h turnaround)
+- [ ] If approved: prepare release notes for launch day
+- [ ] If manual review requested: provide test account/sandbox creds immediately
+
+**Risk:** Reviewer can't reproduce your feature → requests clarification → delays 1-2 days
+**Mitigation:** Include detailed release notes explaining the fix; add test instructions if non-obvious
+
+---
+
+### Phase 6: Release & Monitor (Day 14+)
+- [ ] Release to all users (or phased if >50MB)
+- [ ] Monitor crash logs for 24h
+- [ ] Pin deployment; stand by for urgent fix if needed
+
+---
+
+### Timeline Summary
+| Phase | Duration | Risk Level |
+|-------|----------|-----------|
+| Fix & validate | 2 days | Low (internal only) |
+| Internal TestFlight | 2 days | Medium (catches regressions) |
+| External TestFlight | 2 days | Medium (real devices, users) |
+| Submission & review | 7 days | **High** (App Store rejects ~10% of submissions) |
+| **Total** | **~14 days** | |
+
+---
+
+### Before You Start
+**Questions to clarify:**
+1. Do you have active TestFlight testers, or should we invite new ones?
+2. Does the fix touch payments, privacy, or health data? (Requires extra review scrutiny)
+3. Is there a hard launch date? (Review times vary; plan for 14 days minimum)
+4. Are certificates/profiles current? (Check App Store Connect now)
+
+What's the nature of the code fix? That shapes testing depth in Phase 2.

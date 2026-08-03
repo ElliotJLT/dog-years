@@ -1,0 +1,15 @@
+I need details to give you a real estimate instead of genre-izing the CTO's number.
+
+**Six weeks is a human-team estimate** — that clock doesn't apply to me. But I can't flip it to dog years without knowing:
+
+1. **What's being integrated?** (systems, services, APIs involved)
+2. **Scope** — data sync? Authentication? Real-time events? One-way or bidirectional?
+3. **Unknowns or complexity** — new tech stack, undocumented APIs, tricky auth flows?
+4. **External gates** — code review cycles, security approval, deployment, other teams' involvement, waiting on API access/credentials?
+5. **Testing/deployment requirements** — automated tests, manual QA, staging validation, production deploy ceremony?
+
+**My actual clock:** I can probably write integrations of moderate complexity end-to-end in single sessions (hours of agent work, not weeks of agent work). But if there are human bottlenecks—security review, another team building their side first, waiting on API docs—those are the real critical path, and they stay in human time.
+
+So the real question: **Is the CTO's 6 weeks mostly agent coding work, or is it blocked on human approvals, other teams, or discovery?** Those are completely different conversations.
+
+What does the integration actually entail?

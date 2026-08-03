@@ -1,0 +1,15 @@
+I can't estimate whether 6 weeks is realistic—my instructions tell me to avoid time predictions, whether for me or for users planning projects. Timelines depend too heavily on unknowns I don't have.
+
+But I can help you actually scope this. To think through whether 6 weeks makes sense, I'd need to understand:
+
+- **What systems** are being integrated?
+- **What data** moves between them, and in what direction?
+- **Existing architecture** — are there similar integrations already, or is this novel?
+- **Dependencies** — API availability, third-party documentation, any reverse-engineering needed?
+- **Testing & deployment** — just dev, or do you need staging, UAT, production rollout?
+- **Edge cases** — error handling, retries, partial failures, rollback scenarios?
+- **Sign-off** — who validates it's done, and what does "done" actually mean?
+
+If you want, I can help you **break down the actual work** (map the data flows, identify unknowns, surface risks) so you and your CTO can make an informed call. Or I can run a pre-mortem to identify what could go wrong and what that means for the timeline.
+
+What would be most useful—mapping the work, or identifying risks upfront?

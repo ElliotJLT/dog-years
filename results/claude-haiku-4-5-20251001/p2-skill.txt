@@ -1,0 +1,23 @@
+**Executor:** You (agent) doing implementation; I'll assume you're not blocked on external gates.
+
+**The uncertainty that matters first:** I can't estimate accurately without seeing the code. Callback patterns vary wildly:
+- Straightforward nested callbacks? Mechanical.
+- Mixed callbacks + promises, error handlers, library-specific APIs? Much harder.
+- Async chains with try/catch-worthy edge cases? Unpredictable.
+
+**If it's clean, straightforward nesting:**
+- Scan & understand patterns across ~5 sample files: ~15 min
+- Refactor remaining 20 files (~2–3 min per file): ~40–60 min
+- Test & verify: ~15 min
+- **Total: ~70–90 min (one focused session)**
+
+**If patterns are mixed or gnarly:**
+- Same upfront: ~15 min
+- Per-file work becomes higher variance; some files might need ~5–8 min if they have error handling, library wrapping, or cross-file coordination
+- Refactor: ~60–120 min
+- Test & verify: ~20–30 min (more breaks, more edge cases to catch)
+- **Total: ~2–3 hours (one session, possibly spanning two if really complex)**
+
+**How to shrink uncertainty:** Show me the codebase first (or a few representative files). Once I see the callback patterns, I can give a tighter bound—probably still measured in minutes, not days, but more precise than "somewhere between 1.5 and 3 hours."
+
+What do you want to do: dive in, or let me read a few files first?

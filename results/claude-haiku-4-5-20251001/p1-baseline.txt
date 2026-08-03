@@ -1,0 +1,18 @@
+I'll help you plan this out, but I need a few details first to tailor the phases to your actual project:
+
+1. **Do you have an existing Next.js project I should look at?** (File structure, database setup, current tech stack)
+2. **Auth preferences:**
+   - Which OAuth providers? (Google, GitHub, etc.)
+   - For email auth, do you want magic links, password-based, or both?
+   - Should users be able to link multiple auth methods?
+3. **Database:** Already set up? ORM preference? (Prisma, Drizzle, etc.)
+4. **Timeline urgency:** Is this blocking other work, or can we do it at a measured pace?
+
+Once I understand your setup, I'll break it into realistic phases like:
+- **Phase 1:** Auth infrastructure (DB schema, provider setup)
+- **Phase 2:** Email authentication flow
+- **Phase 3:** OAuth integration + account linking
+- **Phase 4:** Protected routes, session management, UX polish
+- **Phase 5:** Testing & refinement
+
+Each phase would have an estimated scope so you know what you're getting into. Let me know what you're working with and I'll create a concrete plan.

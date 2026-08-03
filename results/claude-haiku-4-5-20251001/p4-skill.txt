@@ -1,0 +1,44 @@
+# iOS App Update Shipping Plan
+
+**Executor split:** I handle code fix, build, and submission; Apple handles review.
+
+## Agent work (this session)
+
+1. **Code fix & testing** — 15–45 minutes
+   - Fix the bug, run local tests, verify on simulator/device
+   - Complexity-dependent; flagging if gnarly
+
+2. **Build & sign** — 5–10 minutes active + ~3–5 min compile wait
+   - Archive, validate signing certificate, create IPA
+   - (Compile time is passive but agent-clock)
+
+3. **TestFlight upload** — 2–3 minutes
+   - Upload to App Store Connect, add release notes, submit for processing
+
+4. **App Store submission** — 2–3 minutes
+   - Create release, attach build, fill metadata, submit
+
+**Total agent time: ~30–70 minutes** (mostly contingent on code fix complexity)
+
+---
+
+## External gates (critical path)
+
+| Step | Typical duration | Notes |
+|---|---|---|
+| **TestFlight build processing** | 15–30 min | Apple builds and makes available to testers |
+| **App Store review** | 24–48 hrs | Can be 1–5 days if rejected; resubmission restarts clock |
+
+**Critical path wait: ~1–3 days** (TestFlight processing + App Store review; these are sequential)
+
+---
+
+## Dependency order
+
+1. Fix → build → TestFlight upload **(agent, ~30–70 min)**
+2. TestFlight processing **(external, ~15–30 min, can start immediately)**
+3. QA/testing on TestFlight (your gate, timing TBD)
+4. App Store submission **(agent, ~2–3 min once you approve)**
+5. App Store review **(external, ~24–48 hrs)**
+
+**Ready to start?** What's the scope of the code fix, and do you have a TestFlight build you're starting from?

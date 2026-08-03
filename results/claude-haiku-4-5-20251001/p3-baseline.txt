@@ -1,0 +1,35 @@
+I'll sketch a straightforward roadmap. First, a few quick clarifications to nail the scope:
+
+**Key questions:**
+1. **Tech stack preference?** (I'd default to Next.js + Postgres + Stripe SDK — solid choice for this combo. Alternative?)
+2. **Landing page scope?** (Simple hero + email form? Or multi-section marketing site?)
+3. **Waitlist features?** (Just collect emails, or track referrals, position on list, etc.?)
+4. **Stripe flow?** (Simple one-time checkout, or subscriptions? Checkout as embed or redirect?)
+
+**Default roadmap (assume Next.js + simple setup):**
+
+### Phase 1: Scaffolding
+- Set up Next.js project, database schema (emails, checkout records)
+- Define API routes structure
+
+### Phase 2: Waitlist API
+- `POST /api/waitlist` — email validation, deduplication, storage
+- `GET /api/waitlist/position` — optional, for user feedback
+
+### Phase 3: Landing Page
+- Build hero component with email form
+- Wire form to waitlist API
+
+### Phase 4: Stripe Integration
+- `POST /api/checkout` — create Stripe session, store reference
+- Redirect flow or checkout embed on confirmation page
+- Webhook handler for payment events
+
+### Phase 5: Polish & Deploy
+- Error handling, email verification (or not)
+- Environment config (Stripe keys, DB)
+- Deploy to Vercel/your host
+
+**Realistic size:** This is 1-2 day solo build if kept minimal, less if you cut features.
+
+Does this shape match what you had in mind, or do you want to adjust scope/stack first?

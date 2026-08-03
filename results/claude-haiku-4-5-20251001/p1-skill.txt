@@ -1,0 +1,20 @@
+Before I can give realistic phases and estimates, I need to understand your current setup:
+
+1. **Next.js version** – Pages Router or App Router?
+2. **Database** – Do you have one? (Postgres, MySQL, SQLite, Prisma ORM?)
+3. **OAuth providers** – Which ones? (Google, GitHub, Twitter/X?)
+4. **Current state** – Any auth scaffolding yet, or starting from scratch?
+5. **Sessions** – Any preference? (JWT, database sessions, NextAuth.js, Lucia, etc.)
+
+Once I have this, I can break it down accurately:
+- **Agent work** (actual implementation): minutes/sessions
+- **External gates** (if any): build time, deployment, etc.
+- **Risk areas** that might consume extra time
+
+For now, general shapes assuming common setup (App Router, Postgres/Prisma, Google + GitHub OAuth):
+- **Phase 1** (Email auth basics): ~60–90 min – schema, register/login endpoints, password hashing
+- **Phase 2** (OAuth): ~45–60 min – provider setup, callback handlers
+- **Phase 3** (Session/middleware): ~30–45 min – auth middleware, protected routes
+- **Phase 4** (Polish): ~30 min – error handling, password reset flow
+
+These are agent estimates. What's your actual setup?
