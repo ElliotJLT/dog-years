@@ -4,8 +4,9 @@
 # Conditions differ by ONE sentence; executor ("you") held constant.
 set -u
 MODEL="claude-haiku-4-5-20251001"
-SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
-OUT="$SKILL_DIR/eval-results/time-perception-v3"
+EXP_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(cd "$EXP_DIR/../skill" && pwd)"
+OUT="$EXP_DIR/eval-results/time-perception-v3"
 ROOT=$(mktemp -d)
 mkdir -p "$OUT"
 

@@ -4,8 +4,9 @@
 # Estimate is committed to ESTIMATE.txt pre-hoc; hooks measure actuals.
 set -u
 MODEL="claude-haiku-4-5-20251001"
-SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
-OUT="$SKILL_DIR/eval-results/exp5-units"
+EXP_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(cd "$EXP_DIR/../skill" && pwd)"
+OUT="$EXP_DIR/eval-results/exp5-units"
 ROOT=$(mktemp -d)
 mkdir -p "$OUT"
 
