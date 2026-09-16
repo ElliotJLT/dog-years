@@ -7,6 +7,7 @@ Gives Claude a clock by measuring what it actually does:
   resolve  — record completion:                        dog.py resolve <slug>
   report   — print calibration table + stats from measured history
   table    — splice the report into SKILL.md between the auto markers
+  doctor   — check the install is wired up (hook firing, data dir, markers)
 
 Data lives in $DOG_YEARS_DATA (default ~/.claude/dog-years/), shared across
 projects so calibration data accumulates. Events carry cwd so parallel
@@ -23,6 +24,19 @@ DATA = os.environ.get("DOG_YEARS_DATA") or os.path.expanduser("~/.claude/dog-yea
 SKILL_MD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SKILL.md")
 MARK_START = "<!-- calibration:auto:start -->"
 MARK_END = "<!-- calibration:auto:end -->"
+
+
+def _norm(path):
+    """Resolve symlinks so a physical and a logical path compare equal.
+
+    predict/resolve record os.getcwd(), which resolves symlinks. The hook
+    records Claude Code's cwd, which may not. Under any symlinked directory
+    (macOS /tmp, git worktrees) the two never matched and tool counts read 0.
+    """
+    try:
+        return os.path.realpath(path) if path else ""
+    except OSError:
+        return path or ""
 
 
 def _append(fname, obj):
@@ -57,7 +71,7 @@ def cmd_event():
     rec = {
         "ts": time.time(),
         "event": kind,
-        "cwd": h.get("cwd", ""),
+        "cwd": _norm(h.get("cwd", "")),
         "session": h.get("session_id", ""),
     }
     if kind == "tool":
@@ -77,7 +91,7 @@ def cmd_predict(args):
     slug, calls, minutes = args[0], _parse_range(args[1]), _parse_range(args[2])
     _append("predictions.jsonl", {
         "type": "predict", "ts": time.time(), "slug": slug,
-        "calls": calls, "minutes": minutes, "cwd": os.getcwd(),
+        "calls": calls, "minutes": minutes, "cwd": _norm(os.getcwd()),
     })
     print(f"predicted {slug}: {calls[0]:.0f}-{calls[1]:.0f} calls, {minutes[0]:.0f}-{minutes[1]:.0f} min")
 
@@ -85,7 +99,7 @@ def cmd_predict(args):
 def cmd_resolve(args):
     slug = args[0]
     _append("predictions.jsonl", {
-        "type": "resolve", "ts": time.time(), "slug": slug, "cwd": os.getcwd(),
+        "type": "resolve", "ts": time.time(), "slug": slug, "cwd": _norm(os.getcwd()),
     })
     print(f"resolved {slug}")
 
@@ -102,13 +116,15 @@ def _rows():
             end_ts = min(m["ts"] for m in matches)
         else:
             stops = [e["ts"] for e in events
-                     if e["event"] == "stop" and e.get("cwd") == p.get("cwd") and e["ts"] > p["ts"]]
+                     if e["event"] == "stop" and _norm(e.get("cwd", "")) == _norm(p.get("cwd", ""))
+                     and e["ts"] > p["ts"]]
             if stops:
                 end_ts, inferred = min(stops), True
         if end_ts is None:
             continue  # still in progress
         calls = sum(1 for e in events
-                    if e["event"] == "tool" and e.get("cwd") == p.get("cwd")
+                    if e["event"] == "tool"
+                    and _norm(e.get("cwd", "")) == _norm(p.get("cwd", ""))
                     and p["ts"] < e["ts"] <= end_ts)
         mins = (end_ts - p["ts"]) / 60.0
         rows.append({
@@ -170,6 +186,65 @@ def cmd_table():
     print("SKILL.md calibration table updated")
 
 
+def cmd_doctor():
+    """Check the install is actually wired up.
+
+    Every entry point here swallows errors and exits 0 so a broken hook can
+    never break a session. The cost of that is silent failure: the hook path
+    was wrong for the life of the project and nothing ever said so.
+    """
+    ok, warn = [], []
+
+    try:
+        os.makedirs(DATA, exist_ok=True)
+        probe = os.path.join(DATA, ".probe")
+        with open(probe, "w") as f:
+            f.write("")
+        os.remove(probe)
+        ok.append(f"data dir writable: {DATA}")
+    except OSError as e:
+        warn.append(f"data dir NOT writable ({DATA}): {e}")
+
+    events = _load("events.jsonl")
+    tools = [e for e in events if e.get("event") == "tool"]
+    if not events:
+        warn.append("no events logged - the PostToolUse hook is not firing. "
+                    "Check the hook command points at this file: " + os.path.abspath(__file__))
+    else:
+        age_h = (time.time() - max(e["ts"] for e in events)) / 3600
+        ok.append(f"{len(events)} events logged ({len(tools)} tool calls), "
+                  f"most recent {age_h:.1f}h ago")
+
+    preds = _load("predictions.jsonl")
+    open_preds = {p["slug"] for p in preds if p.get("type") == "predict"} - \
+                 {p["slug"] for p in preds if p.get("type") == "resolve"}
+    rows = _rows()
+    ok.append(f"{len(preds)} prediction records, {len(rows)} resolved, "
+              f"{len(open_preds)} still open")
+    if rows and all(r["calls"] == 0 for r in rows) and tools:
+        warn.append("every resolved prediction shows 0 tool calls despite logged "
+                    "events - predictions and events disagree on working directory")
+
+    if os.path.exists(SKILL_MD):
+        text = open(SKILL_MD).read()
+        if MARK_START in text and MARK_END in text:
+            ok.append("SKILL.md calibration markers present")
+        else:
+            warn.append(f"SKILL.md missing calibration markers: {SKILL_MD}")
+    else:
+        warn.append(f"SKILL.md not found next to dog.py: {SKILL_MD}")
+
+    for line in ok:
+        print("  ok   " + line)
+    for line in warn:
+        print("  WARN " + line)
+    if not warn:
+        print("\nAll checks passed. Run a task, then `dog.py report`.")
+    else:
+        print("\n%d problem(s). The loop will look empty until these are fixed."
+              % len(warn))
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     args = sys.argv[2:]
@@ -183,6 +258,8 @@ def main():
         cmd_report()
     elif cmd == "table":
         cmd_table()
+    elif cmd == "doctor":
+        cmd_doctor()
     else:
         print(__doc__)
 

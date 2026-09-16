@@ -1,0 +1,50 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: dog.py unit tests
+        run: python3 tests/test_dog.py
+
+      - name: experiment scripts parse
+        run: for f in experiments/*.sh; do bash -n "$f"; done
+
+      - name: published results still reproduce
+        run: |
+          python3 experiments/score-saved.py results/time-perception-v3 \
+            | tee /tmp/scored.txt
+          grep -q "59.2" /tmp/scored.txt
+          grep -q "58.9" /tmp/scored.txt
+          grep -q "53.0" /tmp/scored.txt
+          grep -q 'all runs: \$5.81' /tmp/scored.txt
+
+      - name: saved results are parseable or deliberately empty
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          bad, empty = [], []
+          for p in sorted(pathlib.Path("results").rglob("*.json")):
+              raw = p.read_text()
+              if not raw.strip():
+                  empty.append(str(p))       # a run that produced no output
+                  continue
+              try:
+                  json.load(open(p))
+              except Exception as e:
+                  bad.append("%s: %s" % (p, e))
+          print("%d empty (kept as the record of a failed run): %s"
+                % (len(empty), ", ".join(empty) or "none"))
+          if bad:
+              sys.exit("malformed:\n" + "\n".join(bad))
+          print("all non-empty result files parse")
+          PY
