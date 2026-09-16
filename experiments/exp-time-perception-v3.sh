@@ -4,8 +4,9 @@
 # Conditions differ by ONE sentence; executor ("you") held constant.
 set -u
 MODEL="claude-haiku-4-5-20251001"
-SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
-OUT="$SKILL_DIR/eval-results/time-perception-v3"
+EXP_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(cd "$EXP_DIR/../skill" && pwd)"
+OUT="$EXP_DIR/eval-results/time-perception-v3"
 ROOT=$(mktemp -d)
 mkdir -p "$OUT"
 
@@ -79,8 +80,8 @@ import json, os, re, sys, glob
 out = sys.argv[1]
 print(f"{'run':<5} {'files_done':>10} {'var_left':>8} {'toolcalls':>9} {'turns':>6} {'mins':>6} {'cost$':>7} {'deferred':>8}")
 agg = {}
-for path in sorted(glob.glob(os.path.join(out, "??.json"))):
-    run = os.path.basename(path)[:2]
+for path in sorted(glob.glob(os.path.join(out, "*.json"))):
+    run = os.path.basename(path)[:-len(".json")]
     try:
         j = json.load(open(path))
     except Exception:
