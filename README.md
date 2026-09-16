@@ -48,7 +48,15 @@ Copy the contents of skill/ into ~/.claude/skills/dog-years/.
 Keep my other skills and settings intact. Skip the optional measurement hooks.
 ```
 
-Or install from your terminal:
+Or use the skills CLI:
+
+```sh
+npx skills add ElliotJLT/dog-years --skill dog-years --agent claude-code --global
+```
+
+This installs the skill; measurement hooks are an optional separate step.
+
+For a manual install:
 
 ```sh
 git clone https://github.com/ElliotJLT/dog-years.git
