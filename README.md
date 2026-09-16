@@ -126,6 +126,38 @@ wall-clock means are contaminated by a machine-sleep hang during the run, so
 they are not a metric of record. The decision was made on the pre-registered
 test, not on eyeballing any of this.
 
+Three saved runs produced no output at all (`exp5-units/K4`, `exp6-belief/A5`,
+`exp6-belief/F5`). They are kept as empty files rather than deleted, and the
+scorer excludes them from the aggregates instead of counting them as zeros.
+The sample sizes in [docs/research.md](docs/research.md) already reflect that.
+
+## Check the install is working
+
+```sh
+python3 skill/dog.py doctor
+```
+
+Every entry point in `dog.py` swallows errors and exits 0, so a broken hook can
+never break your session. The cost of that design is silent failure, and this
+project has now been bitten by it twice: the hook path pointed at a file that
+had never existed, and predictions recorded a resolved working directory while
+the hook recorded an unresolved one, so no tool call was ever attributed to a
+prediction. Both looked exactly like "no data yet". `doctor` reports whether
+the data directory is writable, whether events are arriving and how recently,
+how many predictions are open, and whether `SKILL.md` still has its calibration
+markers.
+
+## Tests
+
+```sh
+python3 tests/test_dog.py
+```
+
+No dependencies. Covers range parsing, working-directory normalisation, the
+tool-call attribution window, and the empty report. CI additionally checks that
+every experiment script parses and that the published v3 figures still
+reproduce from the committed results.
+
 ## Related work
 
 [AgentTime](https://www.lesswrong.com/posts/eAbuPXbjakop5rSJx/your-agents-are-not-time-aware)
