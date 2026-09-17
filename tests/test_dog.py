@@ -98,6 +98,39 @@ def test_events_outside_window_excluded(dog, workdir):
     check("earlier rows unaffected", before >= 0)
 
 
+def test_install_hooks(tmp):
+    settings = os.path.join(tmp, "settings.json")
+    with open(settings, "w") as f:
+        json.dump({"model": "opus", "hooks": {
+            "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": "/x/other.py"}]}],
+            "SessionEnd": [{"matcher": "", "hooks": [{"type": "command", "command": "/x/digest.sh"}]}]}}, f)
+    os.environ["DOG_YEARS_SETTINGS"] = settings
+    dog = load_dog(os.path.join(tmp, "data-hooks"))
+    dog.cmd_install_hooks()
+    dog.cmd_install_hooks()                       # second run must not duplicate
+    d = json.load(open(settings))
+    h = d["hooks"]
+    ours = lambda ev: [e for e in h.get(ev, []) if dog._is_ours(e)]
+    check("other top-level settings preserved", d.get("model") == "opus")
+    check("existing hook on same event kept",
+          any("/x/other.py" in e["hooks"][0]["command"] for e in h["UserPromptSubmit"]))
+    check("unrelated event untouched", "SessionEnd" in h)
+    check("one entry per event after two installs",
+          all(len(ours(ev)) == 1 for ev in ("UserPromptSubmit", "PostToolUse", "Stop")),
+          str({ev: len(ours(ev)) for ev in ("UserPromptSubmit", "PostToolUse", "Stop")}))
+    check("PostToolUse matcher is *", ours("PostToolUse")[0].get("matcher") == "*")
+    check("command points at this dog.py", dog.SELF in ours("Stop")[0]["hooks"][0]["command"])
+    check("backup written", os.path.exists(settings + ".dog-years.bak"))
+    registered, path_ok, missing = dog._hook_status()
+    check("doctor sees hooks registered", registered and path_ok and not missing)
+    dog.cmd_uninstall_hooks()
+    d = json.load(open(settings))
+    check("uninstall removes only ours",
+          "PostToolUse" not in d["hooks"] and "Stop" not in d["hooks"]
+          and len(d["hooks"]["UserPromptSubmit"]) == 1 and "SessionEnd" in d["hooks"])
+    os.environ.pop("DOG_YEARS_SETTINGS", None)
+
+
 def test_empty_report(dog):
     check("empty report is honest", "No resolved predictions yet" in dog._fmt_report([]))
 
@@ -112,6 +145,7 @@ def main():
         test_cwd_normalisation(dog, work)
         test_empty_report(dog)
         test_calls_attributed(dog, work)
+        test_install_hooks(tmp)
 
     with tempfile.TemporaryDirectory() as tmp2:
         work2 = os.path.join(tmp2, "work")

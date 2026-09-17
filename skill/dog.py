@@ -8,6 +8,8 @@ Gives Claude a clock by measuring what it actually does:
   report   — print calibration table + stats from measured history
   table    — splice the report into SKILL.md between the auto markers
   doctor   — check the install is wired up (hook firing, data dir, markers)
+  install-hooks   — register the event hooks in ~/.claude/settings.json (idempotent)
+  uninstall-hooks — remove them again
 
 Data lives in $DOG_YEARS_DATA (default ~/.claude/dog-years/), shared across
 projects so calibration data accumulates. Events carry cwd so parallel
@@ -22,6 +24,9 @@ import time
 
 DATA = os.environ.get("DOG_YEARS_DATA") or os.path.expanduser("~/.claude/dog-years")
 SKILL_MD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SKILL.md")
+SELF = os.path.abspath(__file__)
+SETTINGS = os.environ.get("DOG_YEARS_SETTINGS") or os.path.expanduser("~/.claude/settings.json")
+HOOK_EVENTS = {"UserPromptSubmit": None, "PostToolUse": "*", "Stop": None}
 MARK_START = "<!-- calibration:auto:start -->"
 MARK_END = "<!-- calibration:auto:end -->"
 
@@ -186,6 +191,91 @@ def cmd_table():
     print("SKILL.md calibration table updated")
 
 
+def _is_ours(entry):
+    return any("dog.py event" in (h.get("command") or "")
+               for h in entry.get("hooks", []) if isinstance(h, dict))
+
+
+def _read_settings():
+    if not os.path.exists(SETTINGS):
+        return {}
+    with open(SETTINGS) as f:
+        raw = f.read()
+    return json.loads(raw) if raw.strip() else {}
+
+
+def _write_settings(data):
+    os.makedirs(os.path.dirname(SETTINGS), exist_ok=True)
+    if os.path.exists(SETTINGS):
+        with open(SETTINGS) as f:
+            backup = f.read()
+        with open(SETTINGS + ".dog-years.bak", "w") as f:
+            f.write(backup)
+    with open(SETTINGS, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+
+
+def cmd_install_hooks():
+    """Merge our three hooks into settings.json without touching anything else.
+
+    Re-running replaces any earlier dog-years entry (so a moved install gets
+    the new path) and leaves every other hook alone.
+    """
+    data = _read_settings()
+    hooks = data.setdefault("hooks", {})
+    cmd = "python3 %s event" % SELF
+    for event, matcher in HOOK_EVENTS.items():
+        entries = [e for e in hooks.get(event, []) if not _is_ours(e)]
+        entry = {"hooks": [{"type": "command", "command": cmd}]}
+        if matcher is not None:
+            entry["matcher"] = matcher
+        entries.append(entry)
+        hooks[event] = entries
+    _write_settings(data)
+    print("hooks registered in %s for %s" % (SETTINGS, ", ".join(HOOK_EVENTS)))
+    print("command: %s" % cmd)
+    print("start a new Claude Code session for them to take effect")
+
+
+def cmd_uninstall_hooks():
+    data = _read_settings()
+    hooks = data.get("hooks", {})
+    removed = 0
+    for event in list(hooks):
+        kept = [e for e in hooks[event] if not _is_ours(e)]
+        removed += len(hooks[event]) - len(kept)
+        if kept:
+            hooks[event] = kept
+        else:
+            del hooks[event]
+    if not hooks and "hooks" in data:
+        del data["hooks"]
+    _write_settings(data)
+    print("removed %d dog-years hook entr%s from %s"
+          % (removed, "y" if removed == 1 else "ies", SETTINGS))
+
+
+def _hook_status():
+    """(registered, path_exists, missing_events)"""
+    try:
+        hooks = _read_settings().get("hooks", {})
+    except (OSError, ValueError):
+        return False, False, list(HOOK_EVENTS)
+    missing, path_ok = [], True
+    for event in HOOK_EVENTS:
+        ours = [e for e in hooks.get(event, []) if _is_ours(e)]
+        if not ours:
+            missing.append(event)
+            continue
+        for e in ours:
+            for h in e.get("hooks", []):
+                target = (h.get("command") or "").replace("python3 ", "", 1).rsplit(" event", 1)[0]
+                if target and not os.path.exists(os.path.expanduser(target)):
+                    path_ok = False
+    return len(missing) < len(HOOK_EVENTS), path_ok, missing
+
+
 def cmd_doctor():
     """Check the install is actually wired up.
 
@@ -205,11 +295,25 @@ def cmd_doctor():
     except OSError as e:
         warn.append(f"data dir NOT writable ({DATA}): {e}")
 
+    registered, path_ok, missing = _hook_status()
+    if not registered:
+        warn.append("no dog-years hooks in %s - run: python3 %s install-hooks"
+                    % (SETTINGS, SELF))
+    elif missing:
+        warn.append("hooks registered for some events but not %s - re-run install-hooks"
+                    % ", ".join(missing))
+    elif not path_ok:
+        warn.append("a registered hook points at a dog.py that does not exist - "
+                    "re-run install-hooks from the current install")
+    else:
+        ok.append("hooks registered for %s" % ", ".join(HOOK_EVENTS))
+
     events = _load("events.jsonl")
     tools = [e for e in events if e.get("event") == "tool"]
     if not events:
-        warn.append("no events logged - the PostToolUse hook is not firing. "
-                    "Check the hook command points at this file: " + os.path.abspath(__file__))
+        warn.append("no events logged yet" + (
+            " - hooks are registered, so start a new session and run a tool"
+            if registered and path_ok else ""))
     else:
         age_h = (time.time() - max(e["ts"] for e in events)) / 3600
         ok.append(f"{len(events)} events logged ({len(tools)} tool calls), "
@@ -260,6 +364,10 @@ def main():
         cmd_table()
     elif cmd == "doctor":
         cmd_doctor()
+    elif cmd == "install-hooks":
+        cmd_install_hooks()
+    elif cmd == "uninstall-hooks":
+        cmd_uninstall_hooks()
     else:
         print(__doc__)
 

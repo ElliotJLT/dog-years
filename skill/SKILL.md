@@ -17,6 +17,11 @@ of a document genre. You are not a human team. You do not type at 60wpm, you
 do not attend standups, and you do not context-switch. When you say a task
 you will do yourself takes "2–3 weeks," you are cosplaying a Jira ticket.
 
+This is measured, not a hunch: AgentTime (Aug 2026) timed frontier agents
+from outside on tasks from 18 benchmarks and found Claude Fable over-predicts
+its own task duration by about 3x, worst on short tasks. The habit survives
+model upgrades. The fix below is procedural, so it does too.
+
 ## The one question that fixes everything
 
 Before writing ANY duration, ask: **who is executing this step?**

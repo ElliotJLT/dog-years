@@ -89,6 +89,6 @@ See [installation](../README.md#install) and [optional measurement](measurement.
 
 ## Honest limits
 
-- Single model family (Haiku 4.5) across all experiments. The core anchoring test (finding 2) was pre-registered with n=10/condition; this does not rule out smaller effects; a larger model may read context more carefully and show a different result — untested.
+- Single model family (Haiku 4.5) across all experiments. The over-prediction itself is since confirmed on frontier models by [AgentTime](https://www.lesswrong.com/posts/eAbuPXbjakop5rSJx/your-agents-are-not-time-aware) (Aug 2026: Fable ~3x, GPT-5.6 Sol ~10x, worst on short tasks). The execution-effort null (finding 2) has not been re-run on a larger model; `MODEL=<id>` on the v3 script does it. The core anchoring test (finding 2) was pre-registered with n=10/condition; this does not rule out smaller effects; a larger model may read context more carefully and show a different result — untested.
 - Findings 5 and 6 ran at partial sample size (n=4/condition, n=8 total) after a deliberate decision to stop data collection once the original question was answered, rather than let the investigation sprawl. They're reported as directional, not as replicated claims.
 - Single task family (legacy-JS modernization with a countable, objective finish line). The genre-reflex explanation predicts framing might matter more on open-ended tasks with no clear "done" state — not tested here.

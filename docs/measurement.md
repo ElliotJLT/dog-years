@@ -4,7 +4,21 @@ The skill works without hooks. Add these if you want to compare predictions with
 
 ## Connect the hooks
 
-After [installing the skill](../README.md#install), merge the following entries into `~/.claude/settings.json`. Preserve existing settings and append to any existing arrays for these events.
+After [installing the skill](../README.md#install):
+
+```sh
+python3 ~/.claude/skills/dog-years/dog.py install-hooks
+python3 ~/.claude/skills/dog-years/dog.py doctor
+```
+
+`install-hooks` merges three entries into `~/.claude/settings.json`, keeps every
+other setting and hook you already have, writes a `.dog-years.bak` copy first,
+and is safe to re-run (a moved install gets its path updated rather than
+duplicated). `uninstall-hooks` reverses it. `doctor` confirms the hooks are
+registered and pointing at a file that exists, then whether events are arriving.
+
+Set `DOG_YEARS_SETTINGS` to target a different settings file. What gets written,
+for reference:
 
 ```json
 {
