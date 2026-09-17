@@ -54,7 +54,14 @@ Or use the skills CLI:
 npx skills add ElliotJLT/dog-years --skill dog-years --agent claude-code --global
 ```
 
-This installs the skill; measurement hooks are an optional separate step.
+This installs the skill. To also collect measurements, wire the hooks and check the install in two commands:
+
+```sh
+python3 ~/.claude/skills/dog-years/dog.py install-hooks
+python3 ~/.claude/skills/dog-years/dog.py doctor
+```
+
+Both are optional; the rule works without them.
 
 For a manual install:
 
@@ -93,11 +100,11 @@ The optional Python helper records predictions, elapsed time and tool-call count
 python3 ~/.claude/skills/dog-years/dog.py report
 ```
 
-An empty history says so. Set up the [measurement hooks](docs/measurement.md) to start collecting data. Elapsed time includes interruptions; the current implementation also has limits around overlapping sessions.
+An empty history says so. Run `dog.py install-hooks` to start collecting data ([details and limits](docs/measurement.md)). Elapsed time includes interruptions; the current implementation also has limits around overlapping sessions.
 
 ## What we tested
 
-The original investigation includes a six-prompt framing check and a pre-registered, 30-run execution comparison on Haiku 4.5.
+The original investigation includes a six-prompt framing check and a pre-registered, 30-run execution comparison on Haiku 4.5. Every experiment script takes `MODEL=<id>` to re-run on another model; results land in a model-tagged directory so they sit beside the saved Haiku data rather than over it.
 
 Telling the model a task would take “weeks” did **not** establish slower execution in that comparison. We dropped that claim. Improvements to prediction accuracy from measured history remain an open test.
 

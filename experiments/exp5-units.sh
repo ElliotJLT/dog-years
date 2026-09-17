@@ -3,10 +3,11 @@
 # T: estimate in minutes before starting. K: estimate in tool calls.
 # Estimate is committed to ESTIMATE.txt pre-hoc; hooks measure actuals.
 set -u
-MODEL="claude-haiku-4-5-20251001"
+MODEL="${MODEL:-claude-haiku-4-5-20251001}"   # override: MODEL=claude-sonnet-5 bash experiments/...
 EXP_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$EXP_DIR/../skill" && pwd)"
-OUT="$EXP_DIR/eval-results/exp5-units"
+MODEL_TAG=""; case "$MODEL" in claude-haiku-4-5*) ;; *) MODEL_TAG="-$MODEL";; esac
+OUT="$EXP_DIR/eval-results/exp5-units${MODEL_TAG:-}"
 ROOT=$(mktemp -d)
 mkdir -p "$OUT"
 
